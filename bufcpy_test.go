@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"github.com/jasonmoo/goutils"
 	"log"
+	"runtime"
 	"testing"
 )
 
 func must_parse(s string) int {
+	runtime.GOMAXPROCS(runtime.NumCPU())
 	size, err := goutils.HumanReadableSizeToBytes(s)
 	if err != nil {
 		log.Fatal("Unable to parse %s: %s", s, err)
@@ -36,25 +38,19 @@ func T_WrapperN(f func(to, from []byte, n int), bufsize string, n int, t *testin
 	}
 }
 func B_Wrapper(f func(to, from []byte), bufsize string, b *testing.B) {
-	b.StopTimer()
 	bs := must_parse(bufsize)
 	to, from := make([]byte, bs), bytes.Repeat([]byte{1}, bs)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// runtime.GC()
-		b.StartTimer()
 		f(to, from)
-		b.StopTimer()
 	}
 }
 func B_WrapperN(f func(to, from []byte, n int), bufsize string, n int, b *testing.B) {
-	b.StopTimer()
 	bs := must_parse(bufsize)
 	to, from := make([]byte, bs), bytes.Repeat([]byte{1}, bs)
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		// runtime.GC()
-		b.StartTimer()
 		f(to, from, n)
-		b.StopTimer()
 	}
 }
 
@@ -70,92 +66,92 @@ func Test8BytesParallelAssignment(t *testing.T)  { T_Wrapper(EightBytesParallelA
 func Test16BytesParallelAssignment(t *testing.T) { T_Wrapper(SixteenBytesParallelAssignment, "1mb", t) }
 
 // benchmarks
-func BenchmarkNativeCopy1mb(b *testing.B)  { b.StopTimer(); B_Wrapper(NativeCopy, "1mb", b) }
-func BenchmarkNativeCopy2mb(b *testing.B)  { b.StopTimer(); B_Wrapper(NativeCopy, "2mb", b) }
-func BenchmarkNativeCopy4mb(b *testing.B)  { b.StopTimer(); B_Wrapper(NativeCopy, "4mb", b) }
-func BenchmarkNativeCopy8mb(b *testing.B)  { b.StopTimer(); B_Wrapper(NativeCopy, "8mb", b) }
+func BenchmarkNativeCopy1mb(b *testing.B)  { B_Wrapper(NativeCopy, "1mb", b) }
+func BenchmarkNativeCopy2mb(b *testing.B)  { B_Wrapper(NativeCopy, "2mb", b) }
+func BenchmarkNativeCopy4mb(b *testing.B)  { B_Wrapper(NativeCopy, "4mb", b) }
+func BenchmarkNativeCopy8mb(b *testing.B)  { B_Wrapper(NativeCopy, "8mb", b) }
 
-func BenchmarkCgoMemcpy1mb(b *testing.B)  { b.StopTimer(); B_Wrapper(CgoMemcpy, "1mb", b) }
-func BenchmarkCgoMemcpy2mb(b *testing.B)  { b.StopTimer(); B_Wrapper(CgoMemcpy, "2mb", b) }
-func BenchmarkCgoMemcpy4mb(b *testing.B)  { b.StopTimer(); B_Wrapper(CgoMemcpy, "4mb", b) }
-func BenchmarkCgoMemcpy8mb(b *testing.B)  { b.StopTimer(); B_Wrapper(CgoMemcpy, "8mb", b) }
+func BenchmarkCgoMemcpy1mb(b *testing.B)  { B_Wrapper(CgoMemcpy, "1mb", b) }
+func BenchmarkCgoMemcpy2mb(b *testing.B)  { B_Wrapper(CgoMemcpy, "2mb", b) }
+func BenchmarkCgoMemcpy4mb(b *testing.B)  { B_Wrapper(CgoMemcpy, "4mb", b) }
+func BenchmarkCgoMemcpy8mb(b *testing.B)  { B_Wrapper(CgoMemcpy, "8mb", b) }
 
-func BenchmarkRecursiveDacCopyDepth1Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "1mb", 1, b) }
-func BenchmarkRecursiveDacCopyDepth1Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "2mb", 1, b) }
-func BenchmarkRecursiveDacCopyDepth1Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "4mb", 1, b) }
-func BenchmarkRecursiveDacCopyDepth1Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "8mb", 1, b) }
+func BenchmarkRecursiveDacCopyDepth1Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "1mb", 1, b) }
+func BenchmarkRecursiveDacCopyDepth1Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "2mb", 1, b) }
+func BenchmarkRecursiveDacCopyDepth1Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "4mb", 1, b) }
+func BenchmarkRecursiveDacCopyDepth1Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "8mb", 1, b) }
 
-func BenchmarkRecursiveDacCopyDepth2Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "1mb", 2, b) }
-func BenchmarkRecursiveDacCopyDepth2Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "2mb", 2, b) }
-func BenchmarkRecursiveDacCopyDepth2Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "4mb", 2, b) }
-func BenchmarkRecursiveDacCopyDepth2Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "8mb", 2, b) }
+func BenchmarkRecursiveDacCopyDepth2Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "1mb", 2, b) }
+func BenchmarkRecursiveDacCopyDepth2Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "2mb", 2, b) }
+func BenchmarkRecursiveDacCopyDepth2Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "4mb", 2, b) }
+func BenchmarkRecursiveDacCopyDepth2Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "8mb", 2, b) }
 
-func BenchmarkRecursiveDacCopyDepth3Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "1mb", 3, b) }
-func BenchmarkRecursiveDacCopyDepth3Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "2mb", 3, b) }
-func BenchmarkRecursiveDacCopyDepth3Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "4mb", 3, b) }
-func BenchmarkRecursiveDacCopyDepth3Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCopy, "8mb", 3, b) }
+func BenchmarkRecursiveDacCopyDepth3Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "1mb", 3, b) }
+func BenchmarkRecursiveDacCopyDepth3Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "2mb", 3, b) }
+func BenchmarkRecursiveDacCopyDepth3Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "4mb", 3, b) }
+func BenchmarkRecursiveDacCopyDepth3Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCopy, "8mb", 3, b) }
 
-func BenchmarkRecursiveDacCgoMemcpyDepth1Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth1Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 1, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth1Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 1, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth1Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 1, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth1Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth1Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 1, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth1Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 1, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth1Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 1, b) }
 
-func BenchmarkRecursiveDacCgoMemcpyDepth2Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 2, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth2Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 2, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth2Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 2, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth2Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 2, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth2Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 2, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth2Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 2, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth2Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 2, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth2Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 2, b) }
 
-func BenchmarkRecursiveDacCgoMemcpyDepth3Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 3, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth3Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 3, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth3Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 3, b) }
-func BenchmarkRecursiveDacCgoMemcpyDepth3Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 3, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth3Size1mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "1mb", 3, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth3Size2mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "2mb", 3, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth3Size4mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "4mb", 3, b) }
+func BenchmarkRecursiveDacCgoMemcpyDepth3Size8mb(b *testing.B) { B_WrapperN(RecursiveDacCgoMemcpy, "8mb", 3, b) }
 
-func BenchmarkPartitionedCopyParts2Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "1mb", 2, b) }
-func BenchmarkPartitionedCopyParts2Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "2mb", 2, b) }
-func BenchmarkPartitionedCopyParts2Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "4mb", 2, b) }
-func BenchmarkPartitionedCopyParts2Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "8mb", 2, b) }
+func BenchmarkPartitionedCopyParts2Size1mb(b *testing.B) { B_WrapperN(PartitionedCopy, "1mb", 2, b) }
+func BenchmarkPartitionedCopyParts2Size2mb(b *testing.B) { B_WrapperN(PartitionedCopy, "2mb", 2, b) }
+func BenchmarkPartitionedCopyParts2Size4mb(b *testing.B) { B_WrapperN(PartitionedCopy, "4mb", 2, b) }
+func BenchmarkPartitionedCopyParts2Size8mb(b *testing.B) { B_WrapperN(PartitionedCopy, "8mb", 2, b) }
 
-func BenchmarkPartitionedCopyParts4Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "1mb", 4, b) }
-func BenchmarkPartitionedCopyParts4Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "2mb", 4, b) }
-func BenchmarkPartitionedCopyParts4Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "4mb", 4, b) }
-func BenchmarkPartitionedCopyParts4Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "8mb", 4, b) }
+func BenchmarkPartitionedCopyParts4Size1mb(b *testing.B) { B_WrapperN(PartitionedCopy, "1mb", 4, b) }
+func BenchmarkPartitionedCopyParts4Size2mb(b *testing.B) { B_WrapperN(PartitionedCopy, "2mb", 4, b) }
+func BenchmarkPartitionedCopyParts4Size4mb(b *testing.B) { B_WrapperN(PartitionedCopy, "4mb", 4, b) }
+func BenchmarkPartitionedCopyParts4Size8mb(b *testing.B) { B_WrapperN(PartitionedCopy, "8mb", 4, b) }
 
-func BenchmarkPartitionedCopyParts8Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "1mb", 8, b) }
-func BenchmarkPartitionedCopyParts8Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "2mb", 8, b) }
-func BenchmarkPartitionedCopyParts8Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "4mb", 8, b) }
-func BenchmarkPartitionedCopyParts8Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCopy, "8mb", 2, b) }
+func BenchmarkPartitionedCopyParts8Size1mb(b *testing.B) { B_WrapperN(PartitionedCopy, "1mb", 8, b) }
+func BenchmarkPartitionedCopyParts8Size2mb(b *testing.B) { B_WrapperN(PartitionedCopy, "2mb", 8, b) }
+func BenchmarkPartitionedCopyParts8Size4mb(b *testing.B) { B_WrapperN(PartitionedCopy, "4mb", 8, b) }
+func BenchmarkPartitionedCopyParts8Size8mb(b *testing.B) { B_WrapperN(PartitionedCopy, "8mb", 2, b) }
 
-func BenchmarkPartitionedCgoMemcpyParts2Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "1mb", 2, b) }
-func BenchmarkPartitionedCgoMemcpyParts2Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "2mb", 2, b) }
-func BenchmarkPartitionedCgoMemcpyParts2Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "4mb", 2, b) }
-func BenchmarkPartitionedCgoMemcpyParts2Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "8mb", 2, b) }
+func BenchmarkPartitionedCgoMemcpyParts2Size1mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "1mb", 2, b) }
+func BenchmarkPartitionedCgoMemcpyParts2Size2mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "2mb", 2, b) }
+func BenchmarkPartitionedCgoMemcpyParts2Size4mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "4mb", 2, b) }
+func BenchmarkPartitionedCgoMemcpyParts2Size8mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "8mb", 2, b) }
 
-func BenchmarkPartitionedCgoMemcpyParts4Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "1mb", 4, b) }
-func BenchmarkPartitionedCgoMemcpyParts4Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "2mb", 4, b) }
-func BenchmarkPartitionedCgoMemcpyParts4Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "4mb", 4, b) }
-func BenchmarkPartitionedCgoMemcpyParts4Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "8mb", 4, b) }
+func BenchmarkPartitionedCgoMemcpyParts4Size1mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "1mb", 4, b) }
+func BenchmarkPartitionedCgoMemcpyParts4Size2mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "2mb", 4, b) }
+func BenchmarkPartitionedCgoMemcpyParts4Size4mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "4mb", 4, b) }
+func BenchmarkPartitionedCgoMemcpyParts4Size8mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "8mb", 4, b) }
 
-func BenchmarkPartitionedCgoMemcpyParts8Size1mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "1mb", 8, b) }
-func BenchmarkPartitionedCgoMemcpyParts8Size2mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "2mb", 8, b) }
-func BenchmarkPartitionedCgoMemcpyParts8Size4mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "4mb", 8, b) }
-func BenchmarkPartitionedCgoMemcpyParts8Size8mb(b *testing.B) { b.StopTimer(); B_WrapperN(PartitionedCgoMemcpy, "8mb", 2, b) }
+func BenchmarkPartitionedCgoMemcpyParts8Size1mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "1mb", 8, b) }
+func BenchmarkPartitionedCgoMemcpyParts8Size2mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "2mb", 8, b) }
+func BenchmarkPartitionedCgoMemcpyParts8Size4mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "4mb", 8, b) }
+func BenchmarkPartitionedCgoMemcpyParts8Size8mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "8mb", 2, b) }
 
-func Benchmark2BytesParallelAssignment1mb(b *testing.B) { b.StopTimer(); B_Wrapper(TwoBytesParallelAssignment, "1mb", b) }
-func Benchmark2BytesParallelAssignment2mb(b *testing.B) { b.StopTimer(); B_Wrapper(TwoBytesParallelAssignment, "2mb", b) }
-func Benchmark2BytesParallelAssignment4mb(b *testing.B) { b.StopTimer(); B_Wrapper(TwoBytesParallelAssignment, "4mb", b) }
-func Benchmark2BytesParallelAssignment8mb(b *testing.B) { b.StopTimer(); B_Wrapper(TwoBytesParallelAssignment, "8mb", b) }
+func Benchmark2BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "1mb", b) }
+func Benchmark2BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "2mb", b) }
+func Benchmark2BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "4mb", b) }
+func Benchmark2BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "8mb", b) }
 
-func Benchmark4BytesParallelAssignment1mb(b *testing.B) { b.StopTimer(); B_Wrapper(FourBytesParallelAssignment, "1mb", b) }
-func Benchmark4BytesParallelAssignment2mb(b *testing.B) { b.StopTimer(); B_Wrapper(FourBytesParallelAssignment, "2mb", b) }
-func Benchmark4BytesParallelAssignment4mb(b *testing.B) { b.StopTimer(); B_Wrapper(FourBytesParallelAssignment, "4mb", b) }
-func Benchmark4BytesParallelAssignment8mb(b *testing.B) { b.StopTimer(); B_Wrapper(FourBytesParallelAssignment, "8mb", b) }
+func Benchmark4BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "1mb", b) }
+func Benchmark4BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "2mb", b) }
+func Benchmark4BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "4mb", b) }
+func Benchmark4BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "8mb", b) }
 
-func Benchmark8BytesParallelAssignment1mb(b *testing.B) { b.StopTimer(); B_Wrapper(EightBytesParallelAssignment, "1mb", b) }
-func Benchmark8BytesParallelAssignment2mb(b *testing.B) { b.StopTimer(); B_Wrapper(EightBytesParallelAssignment, "2mb", b) }
-func Benchmark8BytesParallelAssignment4mb(b *testing.B) { b.StopTimer(); B_Wrapper(EightBytesParallelAssignment, "4mb", b) }
-func Benchmark8BytesParallelAssignment8mb(b *testing.B) { b.StopTimer(); B_Wrapper(EightBytesParallelAssignment, "8mb", b) }
+func Benchmark8BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "1mb", b) }
+func Benchmark8BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "2mb", b) }
+func Benchmark8BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "4mb", b) }
+func Benchmark8BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "8mb", b) }
 
-func Benchmark16BytesParallelAssignment1mb(b *testing.B) { b.StopTimer(); B_Wrapper(SixteenBytesParallelAssignment, "1mb", b) }
-func Benchmark16BytesParallelAssignment2mb(b *testing.B) { b.StopTimer(); B_Wrapper(SixteenBytesParallelAssignment, "2mb", b) }
-func Benchmark16BytesParallelAssignment4mb(b *testing.B) { b.StopTimer(); B_Wrapper(SixteenBytesParallelAssignment, "4mb", b) }
-func Benchmark16BytesParallelAssignment8mb(b *testing.B) { b.StopTimer(); B_Wrapper(SixteenBytesParallelAssignment, "8mb", b) }
+func Benchmark16BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "1mb", b) }
+func Benchmark16BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "2mb", b) }
+func Benchmark16BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "4mb", b) }
+func Benchmark16BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "8mb", b) }
