@@ -9,6 +9,7 @@ import (
 	"os"
 	"log"
 	"net/http"
+	"./bufcpy"
 )
 
 type Increment struct {
@@ -66,10 +67,10 @@ func print_usage() {
 	os.Exit(0)
 }
 
-var next map[uint8]func(int,int) = map[uint8]func(int,int){
-	uint8('+'):func(a,b int) { return a+b },
-	uint8('*'):func(a,b int) { return a*b },
-	uint8('^'):func(a,b int) { return a*a },
+var next map[uint8]func(*	int,int) = map[uint8]func(*int,int){
+	uint8('+'):func(a *int, b int) { *a = (*a)+b },
+	uint8('*'):func(a *int, b int) { *a = (*a)*b },
+	uint8('^'):func(a *int, b int) { *a = (*a)*a },
 }
 
 func nextBufSize(i *int) {
@@ -78,7 +79,7 @@ func nextBufSize(i *int) {
 		panic("can't read your handwriting.  try 1k or 2mb")
 	}
 	if f, ok := next[Step[0]]; ok {
-		*i = f(*i, int(chunk))
+		f(i, int(chunk))
 	}
 }
 
@@ -107,9 +108,7 @@ func main() {
 		MaxProcs = runtime.NumCPU()
 	}
 
-
-
-	for bufsize := BufMin; bufsize <= BufMax; nextBufSize(&i) {
+	for bufsize := BufMin; bufsize <= BufMax; nextBufSize(&bufsize) {
 
 		// native/memcpy aren't affected by cpus/parts
 		// we can run them from here
