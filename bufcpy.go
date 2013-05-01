@@ -5,6 +5,7 @@ import "C"
 
 import (
 	"unsafe"
+	"runtime"
 )
 
 func main() {
@@ -80,26 +81,6 @@ func PartitionedCgoMemcpy(to, from []byte, parts int) {
 	}
 }
 
-func TwoBytesParallelAssignment(to, from []byte) {
-	for i, ii := 0, 1; i < len(to); i, ii = i+2, ii+2 {
-		to[i], to[ii] = from[i], from[ii]
-	}
-}
-func FourBytesParallelAssignment(to, from []byte) {
-	for i, ii, iii, iv := 0, 1, 2, 3; i < len(to); i, ii, iii, iv = i+4, ii+4, iii+4, iv+4 {
-		to[i], to[ii], to[iii], to[iv] = from[i], from[ii], from[iii], from[iv]
-	}
-}
-func EightBytesParallelAssignment(to, from []byte) {
-	for i, ii, iii, iv, v, vi, vii, viii := 0, 1, 2, 3, 4, 5, 6, 7; i < len(to); i, ii, iii, iv, v, vi, vii, viii = i+8, ii+8, iii+8, iv+8, v+8, vi+8, vii+8, viii+8 {
-		to[i], to[ii], to[iii], to[iv], to[v], to[vi], to[vii], to[viii] = from[i], from[ii], from[iii], from[iv], from[v], from[vi], from[vii], from[viii]
-	}
-}
-func SixteenBytesParallelAssignment(to, from []byte) {
-	for i, ii, iii, iv, v, vi, vii, viii, ix, x, xi, xii, xiii, xiv, xv, xvi := 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15; i < len(to); i, ii, iii, iv, v, vi, vii, viii, ix, x, xi, xii, xiii, xiv, xv, xvi = i+16, ii+16, iii+16, iv+16, v+16, vi+16, vii+16, viii+16, ix+16, x+16, xi+16, xii+16, xiii+16, xiv+16, xv+16, xvi+16 {
-		to[i], to[ii], to[iii], to[iv], to[v], to[vi], to[vii], to[viii], to[ix], to[x], to[xi], to[xii], to[xiii], to[xiv], to[xv], to[xvi] = from[i], from[ii], from[iii], from[iv], from[v], from[vi], from[vii], from[viii], from[ix], from[x], from[xi], from[xii], from[xiii], from[xiv], from[xv], from[xvi]
-	}
-}
 
 /*
 
@@ -471,6 +452,8 @@ func RunConcurrentCgoMemcmp(to, from []byte, parts int) []Result {
 	return resp
 }
 
+*/
+
 
 var (
 	BufMaxString, BufMinString, BufSizeString string
@@ -592,4 +575,3 @@ func main() {
 	}
 
 }
-*/

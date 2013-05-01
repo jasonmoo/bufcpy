@@ -2,15 +2,12 @@ package bufcpy
 
 import (
 	"bytes"
-	"github.com/jasonmoo/goutils"
 	"log"
-	"runtime"
 	"testing"
 )
 
 func must_parse(s string) int {
-	runtime.GOMAXPROCS(runtime.NumCPU())
-	size, err := goutils.HumanReadableSizeToBytes(s)
+	size, err := goutils.ParseHumanReadableSize(s)
 	if err != nil {
 		log.Fatal("Unable to parse %s: %s", s, err)
 	}
@@ -55,11 +52,11 @@ func B_WrapperN(f func(to, from []byte, n int), bufsize string, n int, b *testin
 }
 
 // tests
-func TestCgoMemcpy(t *testing.T)             { T_Wrapper(CgoMemcpy, "1mb", t) }
-func TestRecursiveDacCopy(t *testing.T)      { T_WrapperN(RecursiveDacCopy, "1mb", 1, t) }
-func TestRecursiveDacCgoMemcpy(t *testing.T) { T_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, t) }
-func TestPartitionedCopy(t *testing.T)       { T_WrapperN(PartitionedCopy, "1mb", 2, t) }
-func TestPartitionedCgoMemcpy(t *testing.T)  { T_WrapperN(PartitionedCgoMemcpy, "1mb", 2, t) }
+func TestCgoMemcpy(t *testing.T)                 { T_Wrapper(CgoMemcpy, "1mb", t) }
+func TestRecursiveDacCopy(t *testing.T)          { T_WrapperN(RecursiveDacCopy, "1mb", 1, t) }
+func TestRecursiveDacCgoMemcpy(t *testing.T)     { T_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, t) }
+func TestPartitionedCopy(t *testing.T)           { T_WrapperN(PartitionedCopy, "1mb", 2, t) }
+func TestPartitionedCgoMemcpy(t *testing.T)      { T_WrapperN(PartitionedCgoMemcpy, "1mb", 2, t) }
 func Test2BytesParallelAssignment(t *testing.T)  { T_Wrapper(TwoBytesParallelAssignment, "1mb", t) }
 func Test4BytesParallelAssignment(t *testing.T)  { T_Wrapper(FourBytesParallelAssignment, "1mb", t) }
 func Test8BytesParallelAssignment(t *testing.T)  { T_Wrapper(EightBytesParallelAssignment, "1mb", t) }
@@ -135,23 +132,3 @@ func BenchmarkPartitionedCgoMemcpyParts8Size1mb(b *testing.B) { B_WrapperN(Parti
 func BenchmarkPartitionedCgoMemcpyParts8Size2mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "2mb", 8, b) }
 func BenchmarkPartitionedCgoMemcpyParts8Size4mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "4mb", 8, b) }
 func BenchmarkPartitionedCgoMemcpyParts8Size8mb(b *testing.B) { B_WrapperN(PartitionedCgoMemcpy, "8mb", 2, b) }
-
-func Benchmark2BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "1mb", b) }
-func Benchmark2BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "2mb", b) }
-func Benchmark2BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "4mb", b) }
-func Benchmark2BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(TwoBytesParallelAssignment, "8mb", b) }
-
-func Benchmark4BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "1mb", b) }
-func Benchmark4BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "2mb", b) }
-func Benchmark4BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "4mb", b) }
-func Benchmark4BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(FourBytesParallelAssignment, "8mb", b) }
-
-func Benchmark8BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "1mb", b) }
-func Benchmark8BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "2mb", b) }
-func Benchmark8BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "4mb", b) }
-func Benchmark8BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(EightBytesParallelAssignment, "8mb", b) }
-
-func Benchmark16BytesParallelAssignment1mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "1mb", b) }
-func Benchmark16BytesParallelAssignment2mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "2mb", b) }
-func Benchmark16BytesParallelAssignment4mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "4mb", b) }
-func Benchmark16BytesParallelAssignment8mb(b *testing.B) { B_Wrapper(SixteenBytesParallelAssignment, "8mb", b) }
