@@ -11,7 +11,8 @@ func NativeCopy(to, from []byte) {
 	copy(to, from)
 }
 func CgoMemcpy(to, from []byte) {
-	C.memcpy(unsafe.Pointer(&(to[0])), unsafe.Pointer(&(from[0])), C.size_t(len(to)))
+	copy(to, from)
+	// C.memcpy(unsafe.Pointer(&(to[0])), unsafe.Pointer(&(from[0])), C.size_t(len(to)))
 }
 
 // recursive divide and conquer copy

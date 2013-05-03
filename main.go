@@ -206,6 +206,8 @@ func main() {
 		if top.score < time_to_beat {
 			fmt.Printf("Delta: %s %s  - %0.2f%% faster than NativeCopy (%s)\n", time_to_beat-top.score, strings.TrimSpace(top.name), (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
 		}
+		// on to the next one
+		Report = nil
 	}
 
 }
