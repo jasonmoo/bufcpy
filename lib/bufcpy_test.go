@@ -53,7 +53,10 @@ func B_WrapperN(f func(to, from []byte, n int), bufsize string, n int, b *testin
 }
 
 // tests
-func TestCgoMemcpy(t *testing.T)             { T_Wrapper(CgoMemcpy, "1mb", t) }
+func TestCgoMemcpy(t *testing.T)             {
+	// programatic tests
+
+	T_Wrapper(CgoMemcpy, "1mb", t) }
 func TestRecursiveDacCopy(t *testing.T)      { T_WrapperN(RecursiveDacCopy, "1mb", 1, t) }
 func TestRecursiveDacCgoMemcpy(t *testing.T) { T_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, t) }
 func TestPartitionedCopy(t *testing.T)       { T_WrapperN(PartitionedCopy, "1mb", 2, t) }
