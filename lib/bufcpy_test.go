@@ -15,11 +15,10 @@ func must_parse(s string) int {
 	return int(size)
 }
 
-func T_Wrapper(f func(to, from []byte), bufsize string, t *testing.T) {
+func T_Wrapper(f func(to, from []byte), bufsize int, t *testing.T) {
 	// safe to run in parallel
 	t.Parallel()
-	bs := must_parse(bufsize)
-	to, from := make([]byte, bs), bytes.Repeat([]byte{1}, bs)
+	to, from := make([]byte, bufsize), bytes.Repeat([]byte{1}, bufsize)
 	f(to, from)
 	if ct := utils.DiffBytes(to, from); ct > 0 {
 		t.Errorf("[]byte arrays are different.  Found %d non-matching bytes.", ct)
@@ -53,14 +52,16 @@ func B_WrapperN(f func(to, from []byte, n int), bufsize string, n int, b *testin
 }
 
 // tests
-func TestCgoMemcpy(t *testing.T)             {
-	// programatic tests
-
-	T_Wrapper(CgoMemcpy, "1mb", t) }
-func TestRecursiveDacCopy(t *testing.T)      { T_WrapperN(RecursiveDacCopy, "1mb", 1, t) }
-func TestRecursiveDacCgoMemcpy(t *testing.T) { T_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, t) }
-func TestPartitionedCopy(t *testing.T)       { T_WrapperN(PartitionedCopy, "1mb", 2, t) }
-func TestPartitionedCgoMemcpy(t *testing.T)  { T_WrapperN(PartitionedCgoMemcpy, "1mb", 2, t) }
+// func TestCgoMemcpy(t *testing.T) {
+// 	ix := int(must_parse("1mb"))
+// 	for i := 1024; i < ix; i++ {
+// 		T_Wrapper(CgoMemcpy, ix, t)
+// 	}
+// }
+// func TestRecursiveDacCopy(t *testing.T)      { T_WrapperN(RecursiveDacCopy, "1mb", 1, t) }
+// func TestRecursiveDacCgoMemcpy(t *testing.T) { T_WrapperN(RecursiveDacCgoMemcpy, "1mb", 1, t) }
+// func TestPartitionedCopy(t *testing.T)       { T_WrapperN(PartitionedCopy, "1mb", 2, t) }
+// func TestPartitionedCgoMemcpy(t *testing.T)  { T_WrapperN(PartitionedCgoMemcpy, "1mb", 2, t) }
 
 // benchmarks
 func BenchmarkNativeCopy1mb(b *testing.B)                      { B_Wrapper(NativeCopy, "1mb", b) }

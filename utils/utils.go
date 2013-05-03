@@ -73,3 +73,11 @@ func DiffBytes(a, b []byte) int {
 	}
 	return ct
 }
+
+func SprintIntSlice(a []int) (r string) {
+	sints := make([]string, len(a))
+	for i := 0; i < len(a); i++ {
+		sints[i] = strconv.FormatInt(int64(a[i]), 10)
+	}
+	return strings.Join(sints, ",")
+}
