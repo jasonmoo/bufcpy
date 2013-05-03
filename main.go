@@ -1,41 +1,50 @@
 package main
 
 import (
-	"fmt"
-	"runtime"
-	"reflect"
-	"time"
+	"bufcpy"
 	"flag"
-	"os"
+	"fmt"
 	"log"
 	"net/http"
-	"bufcpy"
-	"utils"
+	"os"
+	"reflect"
+	"runtime"
 	"sort"
 	"strings"
+	"time"
+	"utils"
 )
 
 type (
 	Result struct {
-		name string
-		score   time.Duration
+		name  string
+		score time.Duration
 	}
 	Results []*Result
 )
-func (r *Result) String() string { return fmt.Sprintf("%s: %s", r.name, r.score) }
+
+func (r *Result) String() string     { return fmt.Sprintf("%s: %s", r.name, r.score) }
 func (r Results) Len() int           { return len(r) }
 func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Results) Less(i, j int) bool { return r[i].score < r[j].score }
-func (r *Results) String() string { return fmt.Sprintf(strings.Repeat("%s\n",len(r)), r...) }
+func (r *Results) String() string {
+
+	report := make([]string, len(r))
+	for _, rep := range r {
+		report[len(report)] = rep.String() + "\n"
+	}
+	return strings.Join(report)
+
+}
 
 var (
-	BufMaxString, BufMinString, BufSizeString, Step string
+	BufMaxString, BufMinString, BufSizeString, Step   string
 	BufMax, BufMin, BufSize, Runs, MaxParts, MaxProcs int
-	Copy, Compare, AllTests bool
-	StepAction byte
-	StepAmount int64
-	MinStepAmount int64
-	Debug bool
+	Copy, Compare, AllTests                           bool
+	StepAction                                        byte
+	StepAmount                                        int64
+	MinStepAmount                                     int64
+	Debug                                             bool
 )
 
 func init() {
@@ -62,12 +71,11 @@ func print_usage() {
 // modifies i by ref
 func nextBufSize(i *int) {
 	switch StepAction {
-	case '+': *i += int(StepAmount)
-	case '*': *i *= int(StepAmount)
+	case '+': *i += int(StepAmount); break
+	case '*': *i *= int(StepAmount); break
 	case '^': *i *= *i
 	}
 }
-
 
 func main() {
 	var err error
@@ -81,7 +89,7 @@ func main() {
 
 	if Debug {
 		// fire up the debugging server
-		go func() {	log.Fatal(http.ListenAndServe(":8080", nil)) }()
+		go func() { log.Fatal(http.ListenAndServe(":8080", nil)) }()
 	}
 
 	t1, _ := utils.ParseHumanReadableSize(BufMinString)
@@ -117,34 +125,32 @@ func main() {
 		to, from := make([]byte, bufsize), make([]byte, bufsize)
 		utils.FillBytes(from)
 
-		for _, copyfunc := range []func([]byte,[]byte){bufcpy.NativeCopy, bufcpy.CgoMemcpy} {
+		for _, copyfunc := range []func([]byte, []byte){bufcpy.NativeCopy, bufcpy.CgoMemcpy} {
 
 			sum := time.Duration(0)
 			for i := 0; i < Runs; i++ {
 				utils.ZeroBytes(to)
 				start := time.Now()
-				copyfunc(to,from)
+				copyfunc(to, from)
 				end := time.Now()
 				sum += end.Sub(start)
 			}
 			result := &Result{
-				name: fmt.Sprintf(reflect.TypeOf(copyfunc).Name()+"(bufsize=%d)", utils.FormatHumanReadableSize(int64(bufsize), 1)),
-				score: sum/time.Duration(Runs),
+				name:  fmt.Sprintf(reflect.TypeOf(copyfunc).Name()+"(bufsize=%d)", utils.FormatHumanReadableSize(int64(bufsize), 1)),
+				score: sum / time.Duration(Runs),
 			}
 			fmt.Println(result)
 			Results = append(Results, result)
 
 		}
 
-
-		for cpus := 1; cpus <= MaxProcs; cpus<<=1 {
+		for cpus := 1; cpus <= MaxProcs; cpus <<= 1 {
 			runtime.GOMAXPROCS(cpus)
 			runtime.GC()
 
-			for parts := 1; parts <= MaxParts; parts<<=1 {
+			for parts := 1; parts <= MaxParts; parts <<= 1 {
 
-
-				for _, copyfunc := range []func([]byte,[]byte,int){
+				for _, copyfunc := range []func([]byte, []byte, int){
 					bufcpy.RecursiveDacCopy,
 					bufcpy.RecursiveDacCgoMemcpy,
 					bufcpy.PartitionedCopy,
@@ -155,19 +161,18 @@ func main() {
 					for i := 0; i < Runs; i++ {
 						utils.ZeroBytes(to)
 						start := time.Now()
-						copyfunc(to,from, parts)
+						copyfunc(to, from, parts)
 						end := time.Now()
 						sum += end.Sub(start)
 					}
 					result = &Result{
-						name: fmt.Sprintf(reflect.TypeOf(copyfunc).Name()+"(cpus=%d,bufsize=%d,parts=%d)", cpus, utils.FormatHumanReadableSize(int64(bufsize), 1), parts),
-						score: sum/time.Duration(Runs),
+						name:  fmt.Sprintf(reflect.TypeOf(copyfunc).Name()+"(cpus=%d,bufsize=%d,parts=%d)", cpus, utils.FormatHumanReadableSize(int64(bufsize), 1), parts),
+						score: sum / time.Duration(Runs),
 					}
 					fmt.Println(result)
 					Results = append(Results, result)
 
 				}
-
 
 			}
 

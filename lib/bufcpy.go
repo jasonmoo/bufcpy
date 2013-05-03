@@ -49,10 +49,10 @@ func PartitionedCopy(to, from []byte, parts int) {
 	// of the slice range aligns with our chunk size
 	offset := len(to) % chunk
 	if offset > 0 {
-		go func() {	copy(to[:offset], from[:offset]); done <- 1	}()
+		go func() { copy(to[:offset], from[:offset]); done <- 1 }()
 	}
 
-	for i, end := offset, lento; i < end; i+=chunk {
+	for i, end := offset, lento; i < end; i += chunk {
 		go func(c int) { copy(to[c:c+chunk], from[c:c+chunk]); done <- 1 }(i)
 	}
 
@@ -68,10 +68,10 @@ func PartitionedCgoMemcpy(to, from []byte, parts int) {
 	// of the slice range aligns with our chunk size
 	offset := len(to) % chunk
 	if offset > 0 {
-		go func() {	CgoMemcpy(to[:offset], from[:offset]); done <- 1 }()
+		go func() { CgoMemcpy(to[:offset], from[:offset]); done <- 1 }()
 	}
 
-	for i, end := offset, lento; i < end; i+=chunk {
+	for i, end := offset, lento; i < end; i += chunk {
 		go func(c int) { CgoMemcpy(to[c:c+chunk], from[c:c+chunk]); done <- 1 }(i)
 	}
 
@@ -79,7 +79,6 @@ func PartitionedCgoMemcpy(to, from []byte, parts int) {
 		<-done
 	}
 }
-
 
 /*
 
