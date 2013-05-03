@@ -5,18 +5,13 @@ import "C"
 
 import (
 	"unsafe"
-	"runtime"
 )
-
-func main() {
-
-}
 
 func NativeCopy(to, from []byte) {
 	copy(to, from)
 }
 func CgoMemcpy(to, from []byte) {
-	C.memcpy(unsafe.Pointer(&(to[0])), unsafe.Pointer(&(from[0])), C.size_t(len(from)))
+	C.memcpy(unsafe.Pointer(&(to[0])), unsafe.Pointer(&(from[0])), C.size_t(len(to)))
 }
 
 // recursive divide and conquer copy
@@ -48,15 +43,17 @@ func RecursiveDacCgoMemcpy(to, from []byte, depth int) {
 }
 
 func PartitionedCopy(to, from []byte, parts int) {
-	done, chunk := make(chan int, parts), len(to)/parts
+	done, lento, chunk := make(chan int, parts), len(to), len(to)/parts
 
-	// first and last goroutines are run special because of slice syntax
-	c := (parts - 2) * chunk
-	go func(c int) { copy(to[:c], from[:c]); done <- 1 }(chunk)
-	go func(c int) { copy(to[c:], from[c:]); done <- 1 }(c)
+	// using from-beginning slicing to ensure the center portion
+	// of the slice range aligns with our chunk size
+	offset := len(to) % chunk
+	if offset > 0 {
+		go func() {	copy(to[:offset], from[:offset]); done <- 1	}()
+	}
 
-	for ; c >= chunk; c -= chunk {
-		go func(c, cc int) { copy(to[c:cc], from[c:cc]); done <- 1 }(c, c+chunk)
+	for i, end := offset, lento; i < end; i+=chunk {
+		go func(c int) { copy(to[c:c+chunk], from[c:c+chunk]); done <- 1 }(i)
 	}
 
 	for i := 0; i < parts; i++ {
@@ -65,15 +62,17 @@ func PartitionedCopy(to, from []byte, parts int) {
 }
 
 func PartitionedCgoMemcpy(to, from []byte, parts int) {
-	done, chunk := make(chan int, parts), len(to)/parts
+	done, lento, chunk := make(chan int, parts), len(to), len(to)/parts
 
-	// first and last goroutines are run special because of slice syntax
-	c := (parts - 2) * chunk
-	go func(c int) { CgoMemcpy(to[:c], from[:c]); done <- 1 }(chunk)
-	go func(c int) { CgoMemcpy(to[c:], from[c:]); done <- 1 }(c)
+	// using from-beginning slicing to ensure the center portion
+	// of the slice range aligns with our chunk size
+	offset := len(to) % chunk
+	if offset > 0 {
+		go func() {	CgoMemcpy(to[:offset], from[:offset]); done <- 1 }()
+	}
 
-	for ; c >= chunk; c -= chunk {
-		go func(c, cc int) { CgoMemcpy(to[c:cc], from[c:cc]); done <- 1 }(c, c+chunk)
+	for i, end := offset, lento; i < end; i+=chunk {
+		go func(c int) { CgoMemcpy(to[c:c+chunk], from[c:c+chunk]); done <- 1 }(i)
 	}
 
 	for i := 0; i < parts; i++ {
@@ -452,7 +451,7 @@ func RunConcurrentCgoMemcmp(to, from []byte, parts int) []Result {
 	return resp
 }
 
-*/
+
 
 
 var (
@@ -575,3 +574,5 @@ func main() {
 	}
 
 }
+
+*/
