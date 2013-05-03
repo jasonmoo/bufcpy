@@ -77,7 +77,7 @@ func PrintTopN(report Results, n int) {
 	fmt.Printf("\nTop %d:\n", Top)
 	for i, r := range Report {
 		fields := strings.Fields(r.String())
-		fmt.Printf("%-26s %36s %s\n", fields[0], fields[1], fields[2])
+		fmt.Printf("%-30s %36s %s\n", fields[0], fields[1], fields[2])
 		if i >= Top-1 {
 			break
 		}
@@ -182,7 +182,7 @@ func main() {
 		}
 
 		for bufsize := BufMin; bufsize <= BufMax; nextBufSize(&bufsize) {
-
+			fmt.Println(bufsize)
 			fmt.Println("\n=== New Copy Benchmark ===\n")
 
 			// native/memcpy aren't affected by cpus/parts
@@ -248,7 +248,7 @@ func main() {
 			PrintTopN(Report, Top)
 
 			name := strings.Fields(top.name)
-			fmt.Printf("Copy Winner:  %s %s %s\n", name[0], name[1], top.score)
+			fmt.Printf("Copy Winner:  %s %s %s:  ", name[0], name[1], top.score)
 			if top.score < time_to_beat {
 				fmt.Printf("Delta:  %10s %0.2f%% faster than copy() (%s)\n", time_to_beat-top.score, (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
 			}
@@ -335,7 +335,7 @@ func main() {
 			top := Report[0]
 			PrintTopN(Report, Top)
 			name := strings.Fields(top.name)
-			fmt.Printf("\nEqual Winner:  %s %s %s\n", name[0], name[1], top.score)
+			fmt.Printf("\nEqual Winner:  %s %s %s  ", name[0], name[1], top.score)
 			if top.score < time_to_beat {
 				fmt.Printf("Delta:  %10s %0.2f%% faster than bytes.Equal (%s)\n", time_to_beat-top.score, (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
 			}
