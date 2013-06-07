@@ -1,9 +1,8 @@
 package main
 
 import (
-	"bytes"
-	"strconv"
 	"bufcpy"
+	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"utils"
@@ -31,14 +31,14 @@ func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Results) Less(i, j int) bool { return r[i].score < r[j].score }
 
 var (
-	BufMaxString, BufMinString, BufSizeString, Step, Cpu, Parts   string
-	BufMax, BufMin, BufSize, Runs, Top int
-	CpuList, PartsList []int
-	Copy, Compare, AllTests                           bool
-	StepAction                                        byte
-	StepAmount                                        int64
-	MinStepAmount                                     int64
-	Debug                                             bool
+	BufMaxString, BufMinString, BufSizeString, Step, Cpu, Parts string
+	BufMax, BufMin, BufSize, Runs, Top                          int
+	CpuList, PartsList                                          []int
+	Copy, Compare, AllTests                                     bool
+	StepAction                                                  byte
+	StepAmount                                                  int64
+	MinStepAmount                                               int64
+	Debug                                                       bool
 
 	Report Results
 )
@@ -48,8 +48,8 @@ func init() {
 	flag.StringVar(&BufMaxString, "bufmax", "4mb", "Run tests on a range of buffer sizes.")
 	flag.StringVar(&BufSizeString, "bufsize", "", "Run benchmarks on a single buffer size, instead of using bufmin/bufmax.")
 	flag.StringVar(&Step, "step", "^", "The interval of the buffer range to test.  +Ns, *N, ^ (default: ^ or square)")
-	flag.StringVar(&Cpu, "cpu", "2", "Comma separated list of cpus to enable for benchmarking (default: runtime.NumCPU())")
-	flag.StringVar(&Parts, "parts", "2", "Maximum number of parts for tests that run concurrently on partitions (min: 2)")
+	flag.StringVar(&Cpu, "cpu", "2,4", "Comma separated list of cpus to enable for benchmarking")
+	flag.StringVar(&Parts, "parts", "2,4,6", "Maximum number of parts for tests that run concurrently on partitions (min: 2)")
 	flag.IntVar(&Top, "top", 10, "Show top n results in sorted order")
 	flag.IntVar(&Runs, "runs", 100, "How many times to run each test")
 	flag.BoolVar(&Copy, "copy", false, "Run the copy tests")
@@ -67,9 +67,14 @@ func print_usage() {
 // modifies i by ref
 func nextBufSize(i *int) {
 	switch StepAction {
-	case '+': *i += int(StepAmount); break
-	case '*': *i *= int(StepAmount); break
-	case '^': *i *= *i
+	case '+':
+		*i += int(StepAmount)
+		break
+	case '*':
+		*i *= int(StepAmount)
+		break
+	case '^':
+		*i *= *i
 	}
 }
 
@@ -112,6 +117,8 @@ func main() {
 		BufMin, BufMax = BufSize, BufSize
 	}
 
+	fmt.Println("bufparams:: ", BufMin, BufMax, BufSize)
+
 	StepAction = Step[0]
 	MinStepAmount, _ = utils.ParseHumanReadableSize("11kb")
 	if len(Step) > 1 {
@@ -135,7 +142,6 @@ func main() {
 		}
 	}
 
-
 	for _, ct := range strings.Split(Cpu, ",") {
 		n, err := strconv.ParseInt(ct, 10, 0)
 		if err != nil {
@@ -158,7 +164,7 @@ func main() {
 	}
 	fmt.Println("Running benchmarks with the following settings:")
 	fmt.Printf("Benchmarks: copy: %t, compare %t\n", Copy, Compare)
-	fmt.Printf("bufmin: %d (%s), bufmax: %d (%s), bufsize: %d (%s)\n", BufMin, hrs(BufMin,2), BufMax, hrs(BufMax,2), BufSize, hrs(BufSize,2))
+	fmt.Printf("bufmin: %d (%s), bufmax: %d (%s), bufsize: %d (%s)\n", BufMin, hrs(BufMin, 2), BufMax, hrs(BufMax, 2), BufSize, hrs(BufSize, 2))
 	fmt.Printf("step action: %c, step amount: %d (%s)\n", StepAction, StepAmount, hrs(int(StepAmount), 5))
 	fmt.Printf("cpus: %s parts: %s runs: %d\n", utils.SprintIntSlice(CpuList), utils.SprintIntSlice(PartsList), Runs)
 	fmt.Printf("Debugging enabled: %t\n", Debug)
@@ -167,7 +173,6 @@ func main() {
 	}
 	fmt.Printf("Showing Top %d results in sorted order\n", Top)
 	fmt.Println("\n")
-
 
 	if Copy {
 		native := []func([]byte, []byte){
@@ -202,7 +207,7 @@ func main() {
 					sum += end.Sub(start)
 				}
 				result := &Result{
-					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 1)),
+					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 0)),
 					score: sum / time.Duration(Runs),
 				}
 				fmt.Println(result)
@@ -231,7 +236,7 @@ func main() {
 							sum += end.Sub(start)
 						}
 						result := &Result{
-							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 2), parts),
+							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 0), parts),
 							score: sum / time.Duration(Runs),
 						}
 						fmt.Println(result)
@@ -247,11 +252,12 @@ func main() {
 			top := Report[0]
 			PrintTopN(Report, Top)
 
-			name := strings.Fields(top.name)
-			fmt.Printf("Copy Winner:  %s %s %s:  ", name[0], name[1], top.score)
+			var delta string
 			if top.score < time_to_beat {
-				fmt.Printf("Delta:  %10s %0.2f%% faster than copy() (%s)\n", time_to_beat-top.score, (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
+				delta = fmt.Sprintf("Delta:  %10s %0.2f%% faster than copy() (%s)", time_to_beat-top.score, (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
 			}
+			name := strings.Fields(top.name)
+			fmt.Printf("Copy Winner:  %s %s %s:  %s\n", name[0], name[1], top.score, delta)
 
 			// on to the next one
 			Report = nil
@@ -259,11 +265,11 @@ func main() {
 	}
 
 	if Compare {
-		native := []func([]byte, []byte) bool {
+		native := []func([]byte, []byte) bool{
 			bytes.Equal,
 			bufcpy.CgoMemcmp,
 		}
-		concurrent := []func([]byte, []byte, int) bool {
+		concurrent := []func([]byte, []byte, int) bool{
 			bufcpy.PartitionedEqual,
 			bufcpy.PartitionedCgoMemcmp,
 			bufcpy.RecursiveDacEqual,
@@ -291,7 +297,7 @@ func main() {
 					sum += end.Sub(start)
 				}
 				result := &Result{
-					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 1)),
+					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 0)),
 					score: sum / time.Duration(Runs),
 				}
 				fmt.Println(result)
@@ -319,7 +325,7 @@ func main() {
 							sum += end.Sub(start)
 						}
 						result := &Result{
-							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 2), parts),
+							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 0), parts),
 							score: sum / time.Duration(Runs),
 						}
 						fmt.Println(result)
@@ -344,6 +350,5 @@ func main() {
 			Report = nil
 		}
 	}
-
 
 }
