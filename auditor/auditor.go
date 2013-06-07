@@ -26,8 +26,7 @@ type (
 )
 
 func (r *Result) String() string {
-	pieces := strings.Split(r.name, "\t")
-	return fmt.Sprintf("%s %s %s", strings.TrimLeft(path.Ext(pieces[0]), "."), pieces[1], r.score)
+	return fmt.Sprintf("%-20s %34s", strings.TrimLeft(path.Ext(r.name), "."), r.score)
 }
 func (r Results) Len() int           { return len(r) }
 func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
