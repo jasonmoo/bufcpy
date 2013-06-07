@@ -1,20 +1,20 @@
 package main
 
 import (
-	"bufcpy"
+	bufcpy "../../bufcpy"
 	"bytes"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"path"
 	"reflect"
 	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
-	"utils"
 )
 
 type (
@@ -25,20 +25,22 @@ type (
 	Results []*Result
 )
 
-func (r *Result) String() string     { return fmt.Sprintf("%s: %s", r.name, r.score) }
+func (r *Result) String() string {
+	pieces := strings.Split(r.name, "\t")
+	return fmt.Sprintf("%s %s %s", strings.TrimLeft(path.Ext(pieces[0]), "."), pieces[1], r.score)
+}
 func (r Results) Len() int           { return len(r) }
 func (r Results) Swap(i, j int)      { r[i], r[j] = r[j], r[i] }
 func (r Results) Less(i, j int) bool { return r[i].score < r[j].score }
 
 var (
-	BufMaxString, BufMinString, BufSizeString, Step, Cpu, Parts string
-	BufMax, BufMin, BufSize, Runs, Top                          int
-	CpuList, PartsList                                          []int
-	Copy, Compare, AllTests                                     bool
-	StepAction                                                  byte
-	StepAmount                                                  int64
-	MinStepAmount                                               int64
-	Debug                                                       bool
+	BufMaxString, BufMinString, BufSizeString string
+	Step, Cpu, Parts                          string
+	BufMax, BufMin, BufSize, Runs, Top        int
+	Debug, Copy, Compare, AllTests            bool
+	StepAmount, MinStepAmount                 int64
+	StepAction                                byte
+	CpuList, PartsList                        []int
 
 	Report Results
 )
@@ -61,7 +63,8 @@ func print_usage() {
 	fmt.Println("bufcpy usage:")
 	fmt.Println("go build main.go && ./main")
 	flag.PrintDefaults()
-	fmt.Println()
+	fmt.Println("\nExample:  ./bufcpy -copy -bufmin 32k -bufmax 1m -step +256k")
+
 }
 
 // modifies i by ref
@@ -82,7 +85,7 @@ func PrintTopN(report Results, n int) {
 	fmt.Printf("\nTop %d:\n", Top)
 	for i, r := range Report {
 		fields := strings.Fields(r.String())
-		fmt.Printf("%-30s %36s %s\n", fields[0], fields[1], fields[2])
+		fmt.Printf("%-20s %34s %s\n", fields[0], fields[1], fields[2])
 		if i >= Top-1 {
 			break
 		}
@@ -108,28 +111,26 @@ func main() {
 		go func() { log.Fatal(http.ListenAndServe(":8080", nil)) }()
 	}
 
-	t1, _ := utils.ParseHumanReadableSize(BufMinString)
-	t2, _ := utils.ParseHumanReadableSize(BufMaxString)
-	t3, _ := utils.ParseHumanReadableSize(BufSizeString)
+	t1, _ := bufcpy.ParseHumanReadableSize(BufMinString)
+	t2, _ := bufcpy.ParseHumanReadableSize(BufMaxString)
+	t3, _ := bufcpy.ParseHumanReadableSize(BufSizeString)
 	BufMin, BufMax, BufSize = int(t1), int(t2), int(t3)
 
 	if BufSize > 0 {
 		BufMin, BufMax = BufSize, BufSize
 	}
 
-	fmt.Println("bufparams:: ", BufMin, BufMax, BufSize)
-
 	StepAction = Step[0]
-	MinStepAmount, _ = utils.ParseHumanReadableSize("11kb")
+	MinStepAmount, _ = bufcpy.ParseHumanReadableSize("32kb")
 	if len(Step) > 1 {
 		switch StepAction {
 		case '+':
-			StepAmount, err = utils.ParseHumanReadableSize(Step[1:])
+			StepAmount, err = bufcpy.ParseHumanReadableSize(Step[1:])
 			if err != nil {
 				panic("can't read your handwriting.  try +1k")
 			}
 			if StepAmount < MinStepAmount {
-				fmt.Println("Min step amount set at 11kb")
+				fmt.Println("Min step amount set at 32kb")
 				StepAmount = MinStepAmount
 			}
 			break
@@ -159,20 +160,19 @@ func main() {
 		PartsList = append(PartsList, int(n))
 	}
 
-	hrs := func(i, precision int) string {
-		return utils.FormatHumanReadableSize(int64(i), precision)
+	hrs := func(i int) string {
+		return bufcpy.FormatHumanReadableSize(int64(i), 0)
 	}
 	fmt.Println("Running benchmarks with the following settings:")
 	fmt.Printf("Benchmarks: copy: %t, compare %t\n", Copy, Compare)
-	fmt.Printf("bufmin: %d (%s), bufmax: %d (%s), bufsize: %d (%s)\n", BufMin, hrs(BufMin, 2), BufMax, hrs(BufMax, 2), BufSize, hrs(BufSize, 2))
-	fmt.Printf("step action: %c, step amount: %d (%s)\n", StepAction, StepAmount, hrs(int(StepAmount), 5))
-	fmt.Printf("cpus: %s parts: %s runs: %d\n", utils.SprintIntSlice(CpuList), utils.SprintIntSlice(PartsList), Runs)
+	fmt.Printf("bufmin: %d (%s), bufmax: %d (%s), bufsize: %d (%s)\n", BufMin, hrs(BufMin), BufMax, hrs(BufMax), BufSize, hrs(BufSize))
+	fmt.Printf("step action: %c, step amount: %d (%s)\n", StepAction, StepAmount, hrs(int(StepAmount)))
+	fmt.Printf("cpus: %s parts: %s runs: %d\n", bufcpy.SprintIntSlice(CpuList), bufcpy.SprintIntSlice(PartsList), Runs)
 	fmt.Printf("Debugging enabled: %t\n", Debug)
 	if Debug {
 		fmt.Println("Debugging info:  http://localhost:8080/debug/pprof")
 	}
-	fmt.Printf("Showing Top %d results in sorted order\n", Top)
-	fmt.Println("\n")
+	fmt.Printf("Showing Top %d results in sorted order\n\n", Top)
 
 	if Copy {
 		native := []func([]byte, []byte){
@@ -187,19 +187,19 @@ func main() {
 		}
 
 		for bufsize := BufMin; bufsize <= BufMax; nextBufSize(&bufsize) {
-			fmt.Println(bufsize)
+
 			fmt.Println("\n=== New Copy Benchmark ===\n")
 
 			// native/memcpy aren't affected by cpus/parts
 			// we can run them from this level of the loop
 			to, from, time_to_beat := make([]byte, bufsize), make([]byte, bufsize), time.Duration(0)
-			utils.FillBytes(from)
+			bufcpy.FillBytes(from)
 
 			for i, copyfunc := range native {
 
 				sum := time.Duration(0)
 				for i := 0; i < Runs; i++ {
-					utils.ZeroBytes(to)
+					bufcpy.ZeroBytes(to)
 					runtime.GC()
 					start := time.Now()
 					copyfunc(to, from)
@@ -207,7 +207,7 @@ func main() {
 					sum += end.Sub(start)
 				}
 				result := &Result{
-					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 0)),
+					name:  fmt.Sprintf("%-17s\t(bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), bufcpy.FormatHumanReadableSize(int64(bufsize), 0)),
 					score: sum / time.Duration(Runs),
 				}
 				fmt.Println(result)
@@ -228,7 +228,7 @@ func main() {
 
 						sum := time.Duration(0)
 						for i := 0; i < Runs; i++ {
-							utils.ZeroBytes(to)
+							bufcpy.ZeroBytes(to)
 							runtime.GC()
 							start := time.Now()
 							copyfunc(to, from, parts)
@@ -236,7 +236,7 @@ func main() {
 							sum += end.Sub(start)
 						}
 						result := &Result{
-							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 0), parts),
+							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(copyfunc).Pointer()).Name(), cpus, bufcpy.FormatHumanReadableSize(int64(bufsize), 0), parts),
 							score: sum / time.Duration(Runs),
 						}
 						fmt.Println(result)
@@ -257,7 +257,7 @@ func main() {
 				delta = fmt.Sprintf("Delta:  %10s %0.2f%% faster than copy() (%s)", time_to_beat-top.score, (1-(float64(top.score)/float64(time_to_beat)))*100, time_to_beat)
 			}
 			name := strings.Fields(top.name)
-			fmt.Printf("Copy Winner:  %s %s %s:  %s\n", name[0], name[1], top.score, delta)
+			fmt.Printf("Copy Winner:  %s %s %s:  %s\n", strings.TrimLeft(path.Ext(name[0]), "."), name[1], top.score, delta)
 
 			// on to the next one
 			Report = nil
@@ -297,7 +297,7 @@ func main() {
 					sum += end.Sub(start)
 				}
 				result := &Result{
-					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), utils.FormatHumanReadableSize(int64(bufsize), 0)),
+					name:  fmt.Sprintf("%-17s (bufsize=%s)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), bufcpy.FormatHumanReadableSize(int64(bufsize), 0)),
 					score: sum / time.Duration(Runs),
 				}
 				fmt.Println(result)
@@ -325,7 +325,7 @@ func main() {
 							sum += end.Sub(start)
 						}
 						result := &Result{
-							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), cpus, utils.FormatHumanReadableSize(int64(bufsize), 0), parts),
+							name:  fmt.Sprintf("%-30s (cpus=%d,bufsize=%s,parts=%d)", runtime.FuncForPC(reflect.ValueOf(comparefunc).Pointer()).Name(), cpus, bufcpy.FormatHumanReadableSize(int64(bufsize), 0), parts),
 							score: sum / time.Duration(Runs),
 						}
 						fmt.Println(result)
@@ -350,5 +350,7 @@ func main() {
 			Report = nil
 		}
 	}
+
+	fmt.Println()
 
 }

@@ -4,10 +4,9 @@ package bufcpy
 import "C"
 
 import (
-	"unsafe"
 	"bytes"
+	"unsafe"
 )
-
 
 // Copy functions
 //
@@ -83,7 +82,6 @@ func PartitionedCgoMemcpy(to, from []byte, parts int) {
 		<-done
 	}
 }
-
 
 // Compare functions
 //
@@ -172,4 +170,3 @@ func RecursiveDacCgoMemcmp(to, from []byte, depth int) bool {
 	}
 	return true
 }
-

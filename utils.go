@@ -1,4 +1,4 @@
-package utils
+package bufcpy
 
 import (
 	"strconv"
@@ -30,12 +30,23 @@ func ParseHumanReadableSize(s string) (int64, error) {
 	number, m := s[:], int64(1)
 	if i := strings.IndexAny(s, "bBkKmMgGtTpPeE"); i > 0 {
 		switch s[i] {
-		case 'k','K': m <<= 10; break
-		case 'm','M': m <<= 20; break
-		case 'g','G': m <<= 30; break
-		case 't','T': m <<= 40; break
-		case 'p','P': m <<= 50; break
-		case 'e','E': m <<= 60
+		case 'k', 'K':
+			m <<= 10
+			break
+		case 'm', 'M':
+			m <<= 20
+			break
+		case 'g', 'G':
+			m <<= 30
+			break
+		case 't', 'T':
+			m <<= 40
+			break
+		case 'p', 'P':
+			m <<= 50
+			break
+		case 'e', 'E':
+			m <<= 60
 		}
 		number = s[:i]
 	}
