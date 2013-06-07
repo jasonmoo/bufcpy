@@ -1,0 +1,4 @@
+export ORIG_PATH=${ORIG_PATH-$PATH}
+export GOPATH=`pwd`
+export GOBIN=$GOPATH/bin
+export PATH="$GOBIN:$ORIG_PATH"
